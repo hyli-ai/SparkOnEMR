@@ -1,6 +1,10 @@
-# Data Lake (Apache Spark)
+# Amazon EMR Lab
 >
-In this project, an data lake and an ETL pipeline are built using Apache Spark that extracts data from S3, processes the data into analytic tables, and loads them back to S3.
+In this project, an EMR cluster with one master and one core node is created with spot instance. A dataset of 324 files in CSV format is loaded from S3, and a test query is run on both Spark and Hive to compare the results.
+
+The focus of this project will be on how Amazon EMR works, how to load the data into HDFS, and run a query against the engines built on top of it. There is another project on building a data pipeline with Spark on Amazon EMR in [this](https://github.com/hyli-ai/dl-spark) repository.
+
+## This project is currently under construction. Estimated time of completion: 6/18/2021.
 
 ## Table of contents
 
