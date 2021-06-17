@@ -1,10 +1,6 @@
-# Amazon EMR Lab
+# Data Lake (Apache Spark)
 >
-In this project, an EMR cluster with one master and one core node is created with spot instance. A dataset of 324 files in CSV format is loaded from S3, and a test query is run on both Spark and Hive to compare the results.
-
-The focus of this project will be on how Amazon EMR works, how to load the data into HDFS, and run a query against the engines built on top of it. There is another project on building a data pipeline with Spark on Amazon EMR in [this](https://github.com/hyli-ai/dl-spark) repository.
-
-## This project is currently under construction. Estimated time of completion: 6/18/2021.
+In this project, an data lake and an ETL pipeline are built using Apache Spark that extracts data from S3, processes the data into analytic tables, and loads them back to S3.
 
 ## Table of contents
 
@@ -106,12 +102,16 @@ This project workspace includes three files:
 1. On the retrival of the `song_data`, only files in the path `song_data/A/A/A/*.json` are processed for simplicity.
 
 
-### Temp
+### Preparation
 1. Log into the AWS console
 2. This project is created in US-East-1 region
-3. Create an EMR cluster
-4. Click on **Go to advanced options**
-5. Step 1: Software and Steps
+3. Since we will need to SSH into the master node, we need to go to EC2 and create a key pair.
+
+    ![EC2_KP](/images/EC2_KP.png)
+
+### Create an EMR cluster
+1. Click on **Create cluster** and select **Go to advanced options**
+2. Step 1: Software and Steps
     Under **Software Configuration**, select the following:  
     Release: emr-5.33.0  
     Applications: Hadoop 2.10.1  
@@ -119,21 +119,59 @@ This project workspace includes three files:
                   Spark 2.4.7  
                   Hue 4.9.0 (optional)  
                   Pig 0.17.0 (optional)  
-6. Step 2: Hardware  
+3. Step 2: Hardware  
     On **Cluster Nodes and Instances** section, use the following settings:  
     We only need 1 Master node and 1 Core node, no Task node is required. The instance type is `m4.large`.  
     We can use spot instances to save cost in this project. Check the information icon, and set the max price per instance/hr $0.001 higher than current spot price.
 
     ![EMR_Hardware](/images/EMR_hardware_selection.png)
 
-7. Step 3: General Cluster Settings  
+4. Step 3: General Cluster Settings  
     Cluster name: emr_lab
 
-8. Step 4: Security
-    Since we will need to SSH into the master node, we need to go to EC2 and create a key pair.
-
-    ![EC2_KP](/images/EC2_KP.png)
+5. Step 4: Security
+    
 
     We can select the key pair which has been created and downloaded, and create the cluster.
 
     ![EMR_KP](/images/EMR_KP.png)
+
+6. It will take about 10 mins to finish the creation process. The master node and core node on the cluster overview will be in the **Running** state once the cluster is ready.
+
+    ![Overview](/images/cluster_overview.png)
+
+## Configuration
+1. In order to access the Hadoop UI, we need to change the Security Group setting to open the port. On the **Application and interface** tab, check the port for the HDFS Name Node, which is 50070.
+
+    ![Application&Interface](/images/UI_url.png)
+
+2. Switch back to **Summary** tab, select the Security Group of **ElasticMapReduce-master** under Security and access section, and add a new TCP port 50070 to the inbound rule.
+
+    ![security_and_access](/images/security_and_access.png)
+
+    ![hadoop_overview](/images/hadoop_overview.png)
+
+    ![hadoop_files](/images/hadoop_files.png)
+
+
+
+## Load data from S3 into HDFS
+1. 
+
+    ![copy_data_to_hdfs](/images/copy_data_to_hdfs.png)
+
+    ![step_complete](/images/step_complete.png)
+
+    ![hadoop_files_new](/images/hadoop_files_new.png)
+
+    ![uploaded_files](/images/uploaded_files.png)
+
+    ![python_script](/images/python_script.png)
+
+## 
+
+    ![run_pyspark_step](/images/run_pyspark_step.png)
+
+    ![stdout](/images/stdout.png)
+
+    ![query_result](/images/query_result.png)
