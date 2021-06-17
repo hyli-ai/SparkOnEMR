@@ -1,6 +1,9 @@
-# Data Lake (Apache Spark)
+# Amazon EMR lab
 >
-In this project, an data lake and an ETL pipeline are built using Apache Spark that extracts data from S3, processes the data into analytic tables, and loads them back to S3.
+In this project, an EMR cluster with one master and one core node is created with spot instance. A dataset of 324 files in CSV format is loaded from S3, and a test query is run on both Spark and Hive to compare the results.
+The focus of this project will be on how Amazon EMR works, how to load the data into HDFS, and run a query against the engines built on top of it. There is another project on building a data pipeline with Spark on Amazon EMR in [this](https://github.com/hyli-ai/dl-spark) repository.
+
+## This project is currently under construction. Estimated time of completion: 6/18/2021.
 
 ## Table of contents
 
@@ -156,8 +159,7 @@ This project workspace includes three files:
 
 
 ## Load data from S3 into HDFS
-1. 
-
+1. Add a step  
     ![copy_data_to_hdfs](/images/copy_data_to_hdfs.png)
 
     ![step_complete](/images/step_complete.png)
@@ -168,10 +170,20 @@ This project workspace includes three files:
 
     ![python_script](/images/python_script.png)
 
-## 
-
+## Run the script to query the files
+1. Add another step  
     ![run_pyspark_step](/images/run_pyspark_step.png)
 
     ![stdout](/images/stdout.png)
 
     ![query_result](/images/query_result.png)
+
+## Alternate method
+1. check using ssh  
+    ssh -i xxx.pem hadoop@ec2-54-144-xxx-xxx.compute-1.amazonaws.com
+
+    hdfs dfs -ls /
+
+    /usr/bin/spark-submit --master yarn hdfs:///pyspark-script/emr-pyspark-code.py
+
+    ![use_ssh](/images/use_ssh.png)
