@@ -1,122 +1,75 @@
 # Amazon EMR lab
 >
-In this project, an EMR cluster with one master and one core node is created with spot instance. A dataset of 324 files in CSV format is loaded from S3, and a test query is run on both Spark and Hive to compare the results.
-The focus of this project will be on how Amazon EMR works, how to load the data into HDFS, and run a query against the engines built on top of it. There is another project on building a data pipeline with Spark on Amazon EMR in [this](https://github.com/hyli-ai/dl-spark) repository.
+In this project, an EMR cluster with one master and one core node is created with spot instance. A dataset of 324 files in CSV format is loaded from S3, and a test query is run on both Spark<sup>[1](#myfootnote1)</sup>  and Hive<sup>[2](#myfootnote2)</sup>  to compare the results.
 
-## This project is currently under construction. Estimated time of completion: 6/18/2021.
+<a name="myfootnote1"><sup>1</sup></a> Apache Spark is a big data framework which contains libraries for data analysis, machine learning, graph analysis, and streaming live data. Spark is generally faster than Hadoop because while Hadoop writes intermediate results to disk, Spark keeps intermediate results in memory.
+
+<a name="myfootnote2"><sup>2</sup></a> Apache Hive is a data warehouse software built on top of Apache Hadoop for providing data query and analysis using SQL-like query statements.
 
 ## Table of contents
 
 * [Introduction](#introduction)
-* [Project Description](#project-description)
 * [Dataset](#dataset)
-* [Database and the Star Schema Design](#database-and-the-star-schema-design)
 * [Files in this Project](#files-in-this-project)
 * [Project Instructions](#project-instructions)
 
 ## Introduction
 
 ### Scenario
-A music streaming startup, Sparkify, has grown their user base and song database even more and want to move their data warehouse to a data lake. Their data resides in S3, in a directory of JSON logs on user activity on the app, as well as a directory with JSON metadata on the songs in their app.
+You work for an organization that has a wide variety of users. You have been tasked with running some data analytics for an upcoming marketing campaign. The end goal is to determine the most common users, grouped by their gender and age.
+
+You have all the data you need stored in an S3 bucket. In this lab, you will be in charge of running data analytics on hundreds/thousands of files containing CSV data about the users who interact with the application. To accomplish this, you will first need to create an EMR cluster and copy user data into HDFS. Next, you will run a PySpark Apache Spark script to count the number of users, grouping them by their age and gender. Finally, you will need to load the results into S3 for further analysis.
+
+![flowchart](/images/flowchart)
 
 ### Goal
-The goal of this project, as a data engineer, is to build an ETL pipeline that extracts their data from S3, processes them using Spark, and loads the data back into S3 as a set of dimensional tables. This will allow their analytics team to continue finding insights in what songs their users are listening to.
+The goal of this project, is to present Amazon EMR from an operation point of view. This includes the following parts:
 
-## Project Description
-In this project, you'll apply what you've learned on Spark and data lakes to build an ETL pipeline for a data lake hosted on S3. To complete the project, you will need to load data from S3, process the data into analytics tables using Spark, and load them back into S3. You'll deploy this Spark process on a cluster using AWS.
+* Create and configure an EMR cluster
 
-* Build an ETL pipeline for for a data lake hosted on S3 based on the knowledge of Spark and data lakes.
+* Copy data from S3 to EMR using the `s3-dist-cp` command
 
-* Load data from S3, process the data into analytics tables using Spark, and load them back into S3.
+* Query the data using three different methods:
+    1. Run the PySpark script in a **Step** using `spark-submit`
+    2. Run the PySpark script using Jupyter Notebook
+    3. Create a table and run the query in Hive
 
-* Deploy this Spark process on a cluster using AWS.
+* Copy data from EMR back to S3 using the `s3-dist-cp` command
+
+The focus of this project will be on how Amazon EMR works, how to load the data into HDFS, and run a query against the engines built on top of it. There is another project on building a data pipeline with Spark on Amazon EMR in [this](https://github.com/hyli-ai/dl-spark) repository.
 
 ## Dataset
-Two sets of data are presented: the **Song Dataset** and the **Log Dataset**. These datasets reside in S3, and here are the S3 links for each:
+The dataset presented here is the **user-data-acg** which contains 324 csv format files. It resides in S3, and here is the link:
 
-* Song data: `s3://udacity-dend/song_data`
-* Log data: `s3://udacity-dend/log_data`
-
-### Song Dataset
-The first dataset is a subset of real data from the [Million Song Dataset](https://labrosa.ee.columbia.edu/millionsong/). Each file is in JSON format and contains metadata about a song and the artist of that song. The files are partitioned by the first three letters of each song's track ID. For example, here are filepaths to two files in this dataset.
-
-```
-song_data/A/B/C/TRABCEI128F424C983.json
-song_data/A/A/B/TRAABJL12903CDCF1A.json
-```
-
-And below is an example of what a single song file, **TRAABJL12903CDCF1A.json**, looks like.
-
-```json
-{"num_songs": 1, "artist_id": "ARJIE2Y1187B994AB7", "artist_latitude": null, "artist_longitude": null, "artist_location": "", "artist_name": "Line Renaud", "song_id": "SOUPIRU12A6D4FA1E1", "title": "Der Kleine Dompfaff", "duration": 152.92036, "year": 0}
-```
-
-### Log Dataset
-The second dataset consists of log files in JSON format generated by this [event simulator](https://github.com/Interana/eventsim) based on the songs in the dataset above. These simulate activity logs from a music streaming app based on specified configurations.
-
-The log files in the dataset are partitioned by year and month. For example, here are filepaths to two files in this dataset.
-
-```
-log_data/2018/11/2018-11-12-events.json
-log_data/2018/11/2018-11-13-events.json
-```
-
-And below is an example of what the data in a log file, **2018-11-12-events.json**, looks like.
-
-![Log-data image](/images/log-data.png)
-
-## Database and the Star Schema Design
-Using the song and log datasets, a star schema optimized for queries on song play analysis was created based on the following entity-relationship (ER) diagram:
-![ER Diagram](/images/ERD.png)
-
-This includes the following tables:
-### Fact Table
-1. **songplays** - records in log data associated with song plays i.e. records with page `NextSong`
-    * *songplay_id, start_time, user_id, level, song_id, artist_id, session_id, location, user_agent*
-### Dimension Tables
-1. **users** - users in the app
-    * *user_id, first_name, last_name, gender, level*
-2. **songs** - songs in music database
-    * *song_id, title, artist_id, year, duration*
-3. **artists** - artists in music database
-    * *artist_id, name, location, latitude, longitude*
-4. **time** - timestamps of records in **songplays** broken down into specific units
-    * *start_time, hour, day, week, month, year, weekday*
+* User data: `s3://das-c01-data-analytics-specialtyData_Analytics_With_Spark_and_EMR/`
 
 ## Files in this Project
-This project workspace includes three files:
+In addition to the data files, the project workspace includes six files:
 
-1. `etl.py` reads data from S3, processes that data using Spark, and writes them back to S3.
+1. `emr-pyspark-code.py` is the script for Spark to run.
 
-2. `dl.cfg` contains the AWS credentials.
+2. `spark_notebook.ipynb` has the same statement as `emr-pyspark-code.py` but in a Jupyter Notebook.
 
-3. `README.md` provide discussion on your process and decisions for this ETL pipeline.
+3. `hive-table.txt` has the statements for Hive to create the table, and the SQL statement to count the number of the users and group them by their age and gender.
+
+4. `image` folder contains all the images for the README.md file.
+
+5. `README.md` provides discussion on this project.
 
 ## Project Instructions
 
-
-### Create Table Schema
-
-
-### Build ETL Pipeline
-
-
-### Notes
-1. On the retrival of the `song_data`, only files in the path `song_data/A/A/A/*.json` are processed for simplicity.
-
-
-### Preparation
+### Part A - Preparation
 1. Log into the AWS console
 2. This project is created in US-East-1 region
 3. Since we will need to SSH into the master node, we need to go to EC2 and create a key pair.
 
     ![EC2_KP](/images/EC2_KP.png)
 
-### Create an EMR cluster
+### Part B - Create an EMR cluster
 1. Click on **Create cluster** and select **Go to advanced options**
 2. Step 1: Software and Steps
     Under **Software Configuration**, select the following:  
-    Release: emr-5.33.0  
+    Release: emr-5.31.0 <sup>[1](#myfootnote1)</sup>  
     Applications: Hadoop 2.10.1  
                   Hive 2.3.7  
                   Spark 2.4.7  
@@ -143,12 +96,20 @@ This project workspace includes three files:
 
     ![Overview](/images/cluster_overview.png)
 
-## Configuration
-1. In order to access the Hadoop UI, we need to change the Security Group setting to open the port. On the **Application and interface** tab, check the port for the HDFS Name Node, which is 50070.
+    <a name="myfootnote1"><sup>1</sup></a>  According to [Amazon EMR documentation](https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-managed-notebooks-considerations.html), "For EMR release versions 5.32.0 and later, or 6.2.0 and later, your cluster must also be running the Jupyter Enterprise Gateway application in order to work with EMR Notebooks."
+
+### Part C - Configuration
+1. In order to access the Hadoop UI and Spark UI, we need to change the Security Group setting to open the port. On the **Application and interface** tab, check the port for the HDFS Name Node, which is 50070. The port for Saprk History Server is 18080.
 
     ![Application&Interface](/images/UI_url.png)
 
-2. Switch back to **Summary** tab, select the Security Group of **ElasticMapReduce-master** under Security and access section, and add a new TCP port 50070 to the inbound rule.
+2. Switch back to **Summary** tab, select the Security Group of **ElasticMapReduce-master** under Security and access section, and add the following ports to the inbound rule:
+
+    | Protocol | Port Range | Source | Note  |
+    | :------: | :--------: | :----: | :---: |
+    | TCP      | 50070      | My IP  | Hadoop UI | 
+    | TCP      | 18080      | My IP  | Spark UI |
+    | SSH      |    22      | My IP  | Master Node access |
 
     ![security_and_access](/images/security_and_access.png)
 
@@ -158,8 +119,11 @@ This project workspace includes three files:
 
 
 
-## Load data from S3 into HDFS
+### Part D - Copy data from S3 to EMR
 1. Add a step  
+    ```
+    s3-dist-cp --src=s3://das-c01-data-analytics-specialty/Data_Analytics_With_Spark_and_EMR/ --dest=hdfs:///
+    ```
     ![copy_data_to_hdfs](/images/copy_data_to_hdfs.png)
 
     ![step_complete](/images/step_complete.png)
@@ -170,15 +134,19 @@ This project workspace includes three files:
 
     ![python_script](/images/python_script.png)
 
-## Run the script to query the files
+### Part E - Run the PySpark script in a **Step** using `spark-submit`
 1. Add another step  
+    ```
+    spark-submit hdfs:///pyspark-script/emr-pyspark-code.py
+    ```
+
     ![run_pyspark_step](/images/run_pyspark_step.png)
 
     ![stdout](/images/stdout.png)
 
     ![query_result](/images/query_result.png)
 
-## Alternate method
+### Part F - Run the PySpark script using Jupyter Notebook
 1. check using ssh  
     ssh -i xxx.pem hadoop@ec2-54-144-xxx-xxx.compute-1.amazonaws.com
 
@@ -187,3 +155,19 @@ This project workspace includes three files:
     /usr/bin/spark-submit --master yarn hdfs:///pyspark-script/emr-pyspark-code.py
 
     ![use_ssh](/images/use_ssh.png)
+
+### Part G - Create a table and run the query in Hive
+
+    hive
+    exit;
+    spark-sql
+    cache table lab1;
+
+    ![hive_query](/images/hive-query)
+
+    ![step_to_s3](/images/step_to_s3)
+    ```
+    s3-dist-cp --src=hdfs:///results --dest=s3://<YOUR_BUCKET_NAME>/
+    ```
+
+### Part H - Copy data from EMR back to S3
