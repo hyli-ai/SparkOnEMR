@@ -69,12 +69,15 @@ In addition to the data files, the project workspace includes six files:
 1. Click on **Create cluster** and select **Go to advanced options**
 2. Step 1: Software and Steps
     Under **Software Configuration**, select the following:  
-    Release: emr-5.31.0 <sup>[1](#myfootnote1)</sup>  
+    Release: emr-5.31.0<sup>[3](#myfootnote3)</sup>  
     Applications: Hadoop 2.10.1  
                   Hive 2.3.7  
                   Spark 2.4.7  
                   Hue 4.9.0 (optional)  
                   Pig 0.17.0 (optional)  
+
+    <a name="myfootnote3"><sup>3</sup></a> The reason for me to choose an older version is, according to [Amazon EMR documentation](https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-managed-notebooks-considerations.html), "For EMR release versions 5.32.0 and later, or 6.2.0 and later, your cluster must also be running the Jupyter Enterprise Gateway application in order to work with EMR Notebooks."
+
 3. Step 2: Hardware  
     On **Cluster Nodes and Instances** section, use the following settings:  
     We only need 1 Master node and 1 Core node, no Task node is required. The instance type is `m4.large`.  
@@ -86,8 +89,6 @@ In addition to the data files, the project workspace includes six files:
     Cluster name: emr_lab
 
 5. Step 4: Security
-    
-
     We can select the key pair which has been created and downloaded, and create the cluster.
 
     ![EMR_KP](/images/EMR_KP.png)
@@ -95,8 +96,6 @@ In addition to the data files, the project workspace includes six files:
 6. It will take about 10 mins to finish the creation process. The master node and core node on the cluster overview will be in the **Running** state once the cluster is ready.
 
     ![Overview](/images/cluster_overview.png)
-
-    <a name="myfootnote1"><sup>1</sup></a>  According to [Amazon EMR documentation](https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-managed-notebooks-considerations.html), "For EMR release versions 5.32.0 and later, or 6.2.0 and later, your cluster must also be running the Jupyter Enterprise Gateway application in order to work with EMR Notebooks."
 
 ### Part C - Configuration
 1. In order to access the Hadoop UI and Spark UI, we need to change the Security Group setting to open the port. On the **Application and interface** tab, check the port for the HDFS Name Node, which is 50070. The port for Saprk History Server is 18080.
@@ -113,41 +112,62 @@ In addition to the data files, the project workspace includes six files:
 
     ![security_and_access](/images/security_and_access.png)
 
+3. Open the HDFS Name Node User Interface URL in another tab in Chrome, we will be able to see the Hadoop overview:  
     ![hadoop_overview](/images/hadoop_overview.png)
 
+4. If we select **Browse the file system** **Utilities** tab, we can see the folders and files in our HDFS:  
     ![hadoop_files](/images/hadoop_files.png)
 
-
-
 ### Part D - Copy data from S3 to EMR
-1. Add a step  
-    ```
-    s3-dist-cp --src=s3://das-c01-data-analytics-specialty/Data_Analytics_With_Spark_and_EMR/ --dest=hdfs:///
-    ```
+1. Add a step to the EMR cluster with the following details:
+
+    * Step type: Custom JAR
+    * Name: Copy data and script to HDFS
+    * JAR location: command-runner.jar<sup>[4](#myfootnote4)</sup>
+    * Arguments:
+        ```
+        s3-dist-cp --src=s3://das-c01-data-analytics-specialty/Data_Analytics_With_Spark_and_EMR/ --dest=hdfs:///
+        ```
+    * Action on failure: Continue
+
+    <a name="myfootnote4"><sup>4</sup></a> `command-runner.jar` contains [a list of scripts](https://docs.aws.amazon.com/emr/latest/ReleaseGuide/emr-commandrunner.html) that can be executed by the EMR. Here we are using the `s3-dist-cp` command to copy large amounts of data from Amazon S3 into HDFS.
+
     ![copy_data_to_hdfs](/images/copy_data_to_hdfs.png)
 
-    ![step_complete](/images/step_complete.png)
+2. When the step is complete, reload the files in the Hadoop cluster. Two folders are created, where the **user-data-acg** folder contains all the csv files for analysis, and the **pyspark-script** folder contains the python script to be used in the next step.
 
     ![hadoop_files_new](/images/hadoop_files_new.png)
 
-    ![uploaded_files](/images/uploaded_files.png)
-
-    ![python_script](/images/python_script.png)
-
 ### Part E - Run the PySpark script in a **Step** using `spark-submit`
-1. Add another step  
-    ```
-    spark-submit hdfs:///pyspark-script/emr-pyspark-code.py
-    ```
+1. This is the simplest (and fastest) method to run this query. Just add another step in the cluster: 
+
+    * Step type: Custom JAR
+    * Name: Run PySpark script
+    * JAR location: command-runner.jar
+    * Arguments:
+        ```
+        spark-submit hdfs:///pyspark-script/emr-pyspark-code.py
+        ```
+    * Action on failure: Continue
 
     ![run_pyspark_step](/images/run_pyspark_step.png)
 
+2. Since there is a line in the script `results.show()` to tell Spark to show the first 20 rows of the query result, we can click on **stdout** after this step is complete:  
     ![stdout](/images/stdout.png)
 
+3. Here is the result of the first query:
     ![query_result](/images/query_result.png)
 
 ### Part F - Run the PySpark script using Jupyter Notebook
-1. check using ssh  
+1. First we need to create a Notebook.
+
+2. Next, open a new Notebook with a PySpark kernel.
+
+3. Follow the Notebook to complete the query.
+
+
+### Part G - Create a table and run the query in Hive
+1. 
     ssh -i xxx.pem hadoop@ec2-54-144-xxx-xxx.compute-1.amazonaws.com
 
     hdfs dfs -ls /
@@ -155,8 +175,6 @@ In addition to the data files, the project workspace includes six files:
     /usr/bin/spark-submit --master yarn hdfs:///pyspark-script/emr-pyspark-code.py
 
     ![use_ssh](/images/use_ssh.png)
-
-### Part G - Create a table and run the query in Hive
 
     hive
     exit;
