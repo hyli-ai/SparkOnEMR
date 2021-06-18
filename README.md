@@ -29,10 +29,12 @@ The goal of this project, is to present Amazon EMR from an operation point of vi
 
 * Copy data from S3 to EMR using the `s3-dist-cp` command
 
-* Query the data using three different methods:
+* Query the data using five different methods:
     1. Run the PySpark script in a **Step** using `spark-submit`
     2. Run the PySpark script using Jupyter Notebook
-    3. Create a table and run the query in Hive
+    3. Run the PySpark script using spark-submit command
+    4. Create a table and run the query in Hive
+    5. Run the query in spark-sql
 
 * Copy data from EMR back to S3 using the `s3-dist-cp` command
 
@@ -118,6 +120,12 @@ In addition to the data files, the project workspace includes six files:
 4. If we select **Browse the file system** **Utilities** tab, we can see the folders and files in our HDFS:  
     ![hadoop_files](/images/hadoop_files.png)
 
+5. We can also check the files in HDFS by SSH into the master node, and use the command: (see Part G and H for SSH details)
+
+    ```
+    hdfs dfs -ls /
+    ```
+
 ### Part D - Copy data from S3 to EMR
 1. Add a step to the EMR cluster with the following details:
 
@@ -155,37 +163,114 @@ In addition to the data files, the project workspace includes six files:
 2. Since there is a line in the script `results.show()` to tell Spark to show the first 20 rows of the query result, we can click on **stdout** after this step is complete:  
     ![stdout](/images/stdout.png)
 
-3. Here is the result of the first query:
+3. Here is the partial result of the first query:  
     ![query_result](/images/query_result.png)
 
+4. The complete query result will be saved in a folder named `results`.
+
 ### Part F - Run the PySpark script using Jupyter Notebook
-1. First we need to create a Notebook.
+1. This method give us the flexibility to do data wrangling and debug the script one step at a time.
 
-2. Next, open a new Notebook with a PySpark kernel.
+2. First we need to create a Notebook.
 
-3. Follow the Notebook to complete the query.
+3. Next, open a new Notebook with a PySpark kernel.
+
+4. Follow the Notebook to complete the query.
 
 
-### Part G - Create a table and run the query in Hive
-1. 
+### Part G - Run the PySpark script using spark-submit command
+1. To use the spark-submit command, we need to SSH into the master node by using the following command in the terminal, where **xxx.pem** is the secret access key created in Part A:
+    ```
     ssh -i xxx.pem hadoop@ec2-54-144-xxx-xxx.compute-1.amazonaws.com
+    ```
 
-    hdfs dfs -ls /
+2. Use the command `which spark-submit` to find out the location of it.
 
+3. Run the script:
+
+    ```
     /usr/bin/spark-submit --master yarn hdfs:///pyspark-script/emr-pyspark-code.py
+    ```
 
-    ![use_ssh](/images/use_ssh.png)
+4. We may not be able to see the immediate query result since it will be written inside a flood of runtime info. The complete results, however, is still available in the `results` folder.
 
-    hive
-    exit;
-    spark-sql
-    cache table lab1;
+### Part H - Create a table and run the query in Hive
+1. Also inside the master node, type `hive` to access Hive.
+
+2. Use the `CREATE TABLE` SQL command in `hive-table.txt` to create a table:
+
+    ```sql
+    CREATE EXTERNAL TABLE lab1 (
+    gender STRING,
+    title STRING,
+    first STRING,
+    last STRING,
+    street_number INT,
+    street_name STRING,
+    city STRING,
+    state STRING,
+    country STRING,
+    postcode INT,
+    latitude DOUBLE,
+    longitude DOUBLE,
+    offset STRING,
+    description STRING,
+    email STRING,
+    dob STRING,
+    age INT,
+    date1 STRING,
+    reg_age INT,
+    phone STRING,
+    cell STRING,
+    id STRING,
+    value STRING,
+    picture_large STRING,
+    picture_medium STRING,
+    picture_thumbnail STRING,
+    nat STRING
+    )
+    ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+    LOCATION 's3://das-c01-data-analytics-specialty/Data_Analytics_With_Spark_and_EMR/user-data-acg/'
+    tblproperties ("skip.header.line.count"="1");
+    ```
+
+3. Use the bottom half of the `hive-table.txt` to run the query:
+    ```sql
+    SELECT age, gender, COUNT(*) AS total
+    FROM lab1
+    GROUP BY age, gender
+    ORDER BY total DESC
+    LIMIT 20;
+    ```
+
+4. The result is the same as the one from using Spark.  
 
     ![hive_query](/images/hive-query)
 
-    ![step_to_s3](/images/step_to_s3)
-    ```
-    s3-dist-cp --src=hdfs:///results --dest=s3://<YOUR_BUCKET_NAME>/
-    ```
+5. Type `exit` to exit Hive.
 
-### Part H - Copy data from EMR back to S3
+### Part I - Run the query in spark-sql
+1. Type `spark-sql` to enter Spark SQL.
+
+2. Cache the table we've created in Part H into the memory by typing `cache table lab1;`.
+
+3. Run the query as in Part H, and we will get the same results:
+
+    ![use_ssh](/images/use_ssh.png)
+
+### Part J - Copy data from EMR back to S3
+1. Create a bucket in S3. Here I name it **emr-lab1-2021**.
+
+2. Add a final step to the EMR cluster:
+    * Step type: Custom JAR
+    * Name: Copy data to S3
+    * JAR location: command-runner.jar
+    * Arguments:
+        ```
+        s3-dist-cp --src=hdfs:///results --dest=s3://emr-lab1-2021/
+        ```
+    * Action on failure: Continue
+
+3. This will make a copy of the query result to S3, which completes this lab.
+
+
