@@ -20,7 +20,7 @@ You work for an organization that has a wide variety of users. You have been tas
 
 You have all the data you need stored in an S3 bucket. In this lab, you will be in charge of running data analytics on hundreds/thousands of files containing CSV data about the users who interact with the application. To accomplish this, you will first need to create an EMR cluster and copy user data into HDFS. Next, you will run a PySpark Apache Spark script to count the number of users, grouping them by their age and gender. Finally, you will need to load the results into S3 for further analysis.
 
-![flowchart](/images/flowchart)
+![flowchart](/images/flowchart.jpg)
 
 ### Goal
 The goal of this project, is to present Amazon EMR from an operation point of view. This includes the following parts:
