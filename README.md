@@ -245,7 +245,7 @@ In addition to the data files, the project workspace includes six files:
 
 4. The result is the same as the one from using Spark.  
 
-    ![hive_query](/images/hive-query)
+    ![hive_query](/images/hive-query.png)
 
 5. Type `exit` to exit Hive.
 
