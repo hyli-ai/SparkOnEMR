@@ -1,0 +1,41 @@
+--Table creation in Hive
+CREATE EXTERNAL TABLE lab1 (
+    gender STRING,
+    title STRING,
+    first STRING,
+    last STRING,
+    street_number INT,
+    street_name STRING,
+    city STRING,
+    state STRING,
+    country STRING,
+    postcode INT,
+    latitude DOUBLE,
+    longitude DOUBLE,
+    offset STRING,
+    description STRING,
+    email STRING,
+    dob STRING,
+    age INT,
+    date1 STRING,
+    reg_age INT,
+    phone STRING,
+    cell STRING,
+    id STRING,
+    value STRING,
+    picture_large STRING,
+    picture_medium STRING,
+    picture_thumbnail STRING,
+    nat STRING
+)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+LOCATION 's3://das-c01-data-analytics-specialty/Data_Analytics_With_Spark_and_EMR/user-data-acg/'
+tblproperties ("skip.header.line.count"="1");
+
+
+--SELECT statement in Hive
+SELECT age, gender, COUNT(*) AS total
+FROM lab1
+GROUP BY age, gender
+ORDER BY total DESC
+LIMIT 20;
